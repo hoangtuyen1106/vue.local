@@ -3,8 +3,11 @@
         <div
             class="d-flex justify-content-start align-items-center">
             <input
-                class="form-check-input mt-0" :class="completedClass" :checked="task.is_completed" 
                 type="checkbox"
+                class="form-check-input mt-0" 
+                :class="completedClass" 
+                :checked="task.is_completed" 
+                @change="markTaskAsCompleted"
             />
             <div
                 class="ms-2 flex-grow-1"  
@@ -15,16 +18,21 @@
                 <div class="relative" v-if="isEdit">
                     <input class="editable-task" 
                     type="text" 
-                    @keyup.esc="$event => isEdit = false" 
                     v-focus 
-                    @keyup.enter="updateTask"
+                    @keyup.esc="undo" 
+                    @keyup.enter="updateTask" 
+                    v-model="editingTask"
                     />
                 </div>
                 <span v-else>{{ task.name }}</span>
             </div>
             <!-- <div class="task-date">24 Feb 12:00</div> -->
         </div>
-        <TaskActions @edit="$event => isEdit = true" v-show="!isEdit" />
+        <TaskActions 
+            v-show="!isEdit" 
+            @edit="$event => isEdit = true" 
+            @remove="removeTask" 
+        />
     </li>
 </template>
 <script setup>
@@ -33,9 +41,10 @@ import TaskActions from './TaskActions.vue';
 const props = defineProps({
     task:Object
 })
-const emit = defineEmits(['updated'])
+const emit = defineEmits(["updated", 'completed', 'removed']);
 
 const isEdit = ref(false)
+const editingTask = ref(props.task.name)
 
 const completedClass = computed(() => props.task.is_completed ? "completed" : "")
 
@@ -43,9 +52,25 @@ const vFocus = {
     mounted: (el) => el.focus()
 }
 
-const updateTask = event => {
-    const updatedTask = { ...props.task, name: event.target.value}
-    isEdit.value = false
-    emit('updated', updatedTask)
+const updateTask = (event) => {
+    const updatedTask = { ...props.task, name: event.target.value };
+    isEdit.value = false;
+    emit("updated", updatedTask);
+};
+
+const markTaskAsCompleted = (event) => {
+    const updatedTask = { ...props.task, is_completed: !props.task.is_completed };
+    emit("completed", updatedTask);
+};
+
+const removeTask = () => {
+    if(confirm("Are you sure ?")) {
+        emit("removed", props.task);
+    }
+}
+
+const undo = () => {
+    isEdit.value = false;
+    editingTask.value = props.task.name
 }
 </script>
